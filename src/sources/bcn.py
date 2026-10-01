@@ -1,12 +1,11 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from xml.etree import ElementTree
+import platform
 import subprocess
-from src.utils.time_utils import (
-    nicaragua_today,
-)
 
 from src.models.official_rate import OfficialRate
+from src.utils.time_utils import nicaragua_today
 
 
 BCN_URL = (
@@ -40,14 +39,28 @@ def fetch_bcn_rate(
     </soap:Body>
 </soap:Envelope>"""
 
-    result = subprocess.run(
+    curl_command = [
+        "curl",
+        "--silent",
+        "--show-error",
+        "--fail",
+        "--max-time",
+        "30",
+    ]
+
+    # GitHub Actions uses Linux + OpenSSL 3.
+    # BCN requires legacy TLS 1.0 compatibility there.
+    if platform.system() == "Linux":
+        curl_command.extend(
+            [
+                "--tlsv1.0",
+                "--ciphers",
+                "DEFAULT:@SECLEVEL=0",
+            ]
+        )
+
+    curl_command.extend(
         [
-            "curl",
-            "--silent",
-            "--show-error",
-            "--fail",
-            "--max-time",
-            "30",
             BCN_URL,
             "-H",
             "Content-Type: text/xml; charset=utf-8",
@@ -55,7 +68,11 @@ def fetch_bcn_rate(
             f'SOAPAction: "{SOAP_ACTION}"',
             "--data-binary",
             "@-",
-        ],
+        ]
+    )
+
+    result = subprocess.run(
+        curl_command,
         input=soap_body,
         text=True,
         capture_output=True,
