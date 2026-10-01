@@ -21,6 +21,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Diagnose BCN TLS
+        run: |
+          curl --version
+          openssl version
+
+          curl -v \
+            --tlsv1.0 \
+            --ciphers 'DEFAULT:@SECLEVEL=0' \
+            --max-time 30 \
+            "https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx?WSDL"
+
       - name: Collect exchange rates
         run: python -m src.main
         env:
