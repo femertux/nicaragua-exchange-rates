@@ -24,7 +24,11 @@ jobs:
       - name: Diagnose BAC
         run: |
           echo "=== Request without headers ==="
-          curl -sS -o /tmp/bac-no-headers.txt \
+          curl \
+            --connect-timeout 10 \
+            --max-time 20 \
+            -sS \
+            -o /tmp/bac-no-headers.txt \
             -D /tmp/bac-no-headers-headers.txt \
             -w "HTTP_STATUS=%{http_code}\n" \
             "https://www.sucursalelectronica.com/exchangerate/showXmlExchangeRate.do"
@@ -33,7 +37,11 @@ jobs:
           echo
 
           echo "=== Request with browser headers ==="
-          curl -sS -o /tmp/bac-browser.txt \
+          curl \
+            --connect-timeout 10 \
+            --max-time 20 \
+            -sS \
+            -o /tmp/bac-browser.txt \
             -D /tmp/bac-browser-headers.txt \
             -w "HTTP_STATUS=%{http_code}\n" \
             "https://www.sucursalelectronica.com/exchangerate/showXmlExchangeRate.do" \
