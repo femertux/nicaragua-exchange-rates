@@ -21,6 +21,29 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Diagnose BAC
+        run: |
+          echo "=== Request without headers ==="
+          curl -sS -o /tmp/bac-no-headers.txt \
+            -D /tmp/bac-no-headers-headers.txt \
+            -w "HTTP_STATUS=%{http_code}\n" \
+            "https://www.sucursalelectronica.com/exchangerate/showXmlExchangeRate.do"
+
+          cat /tmp/bac-no-headers-headers.txt
+          echo
+
+          echo "=== Request with browser headers ==="
+          curl -sS -o /tmp/bac-browser.txt \
+            -D /tmp/bac-browser-headers.txt \
+            -w "HTTP_STATUS=%{http_code}\n" \
+            "https://www.sucursalelectronica.com/exchangerate/showXmlExchangeRate.do" \
+            -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" \
+            -H "Accept: application/xml,text/xml,text/html,application/xhtml+xml,*/*;q=0.8" \
+            -H "Accept-Language: es-NI,es;q=0.9,en;q=0.8" \
+            -H "Referer: https://www.baccredomatic.com/es-ni"
+
+          cat /tmp/bac-browser-headers.txt
+
       - name: Collect exchange rates
         run: python -m src.main
         env:
