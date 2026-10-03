@@ -23,34 +23,56 @@ jobs:
 
       - name: Diagnose BAC
         run: |
-          echo "=== Request without headers ==="
-          curl \
-            --connect-timeout 10 \
-            --max-time 20 \
-            -sS \
-            -o /tmp/bac-no-headers.txt \
-            -D /tmp/bac-no-headers-headers.txt \
-            -w "HTTP_STATUS=%{http_code}\n" \
-            "https://www.sucursalelectronica.com/exchangerate/showXmlExchangeRate.do"
+          python - <<'PY'
+          import requests
 
-          cat /tmp/bac-no-headers-headers.txt
-          echo
+          from src.sources.bac import (
+              BAC_HEADERS,
+              BAC_URL,
+          )
 
-          echo "=== Request with browser headers ==="
-          curl \
-            --connect-timeout 10 \
-            --max-time 20 \
-            -sS \
-            -o /tmp/bac-browser.txt \
-            -D /tmp/bac-browser-headers.txt \
-            -w "HTTP_STATUS=%{http_code}\n" \
-            "https://www.sucursalelectronica.com/exchangerate/showXmlExchangeRate.do" \
-            -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36" \
-            -H "Accept: application/xml,text/xml,text/html,application/xhtml+xml,*/*;q=0.8" \
-            -H "Accept-Language: es-NI,es;q=0.9,en;q=0.8" \
-            -H "Referer: https://www.baccredomatic.com/es-ni"
+          print("BAC URL:")
+          print(BAC_URL)
+          print()
 
-          cat /tmp/bac-browser-headers.txt
+          try:
+              response = requests.get(
+                  BAC_URL,
+                  headers=BAC_HEADERS,
+                  timeout=(10, 20),
+              )
+
+              print(
+                  f"HTTP status: "
+                  f"{response.status_code}"
+              )
+
+              print(
+                  f"Server: "
+                  f"{response.headers.get('Server')}"
+              )
+
+              print(
+                  f"Content-Type: "
+                  f"{response.headers.get('Content-Type')}"
+              )
+
+              print(
+                  f"Akamai-GRN: "
+                  f"{response.headers.get('Akamai-GRN')}"
+              )
+
+              print(
+                  f"Content-Length: "
+                  f"{len(response.content)}"
+              )
+
+          except requests.RequestException as error:
+              print(
+                  f"Request failed: "
+                  f"{type(error).__name__}: {error}"
+              )
+          PY
 
       - name: Collect exchange rates
         run: python -m src.main
