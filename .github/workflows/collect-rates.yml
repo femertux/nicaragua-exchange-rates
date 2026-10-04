@@ -3,6 +3,9 @@ name: Collect exchange rates
 on:
   workflow_dispatch:
 
+  schedule:
+    - cron: "10 14 * * *"
+
 jobs:
   collect:
     runs-on: ubuntu-latest
