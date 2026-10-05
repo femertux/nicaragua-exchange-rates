@@ -4,7 +4,8 @@ on:
   workflow_dispatch:
 
   schedule:
-    - cron: "10 14 * * *"
+    - cron: "17 8 * * *"
+      timezone: "America/Managua"
 
 jobs:
   collect:
