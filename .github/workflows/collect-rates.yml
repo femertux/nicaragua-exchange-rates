@@ -31,40 +31,40 @@ jobs:
         run: pip install -r requirements.txt
 
       # --------------------------------------------------------
-      # BCN Certificate Validation (Temporary)
+      # BCN SSL Certificate
       # --------------------------------------------------------
 
-      - name: Diagnose BCN certificate validation
-        continue-on-error: true
+      - name: Configure BCN SSL certificate
         run: |
           echo "=== Download DigiCert intermediate ==="
 
           curl --fail --silent --show-error \
-            --output /tmp/digicert-intermediate.crt \
+            --output /tmp/bcn-intermediate.crt \
             https://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt
-
-          echo "=== Inspect certificate ==="
-
-          openssl x509 \
-            -inform DER \
-            -in /tmp/digicert-intermediate.crt \
-            -noout \
-            -subject \
-            -issuer
 
           echo "=== Convert certificate to PEM ==="
 
           openssl x509 \
             -inform DER \
-            -in /tmp/digicert-intermediate.crt \
-            -out /tmp/digicert-intermediate.pem
+            -in /tmp/bcn-intermediate.crt \
+            -out /tmp/bcn-intermediate.pem
 
-          echo "=== Test BCN SSL connection ==="
+          echo "=== Validate certificate identity ==="
 
-          curl --verbose --max-time 20 \
-            --cacert /tmp/digicert-intermediate.pem \
-            https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx \
-            --output /dev/null
+          openssl x509 \
+            -in /tmp/bcn-intermediate.pem \
+            -noout \
+            -subject \
+            -issuer
+
+          echo "=== Build CA bundle ==="
+
+          cat \
+            /etc/ssl/certs/ca-certificates.crt \
+            /tmp/bcn-intermediate.pem \
+            > /tmp/bcn-ca-bundle.pem
+
+          echo "BCN SSL certificate configured successfully"
 
       # --------------------------------------------------------
       # Collect Exchange Rates
@@ -76,3 +76,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
           BAC_API_URL: ${{ secrets.BAC_API_URL }}
+          BCN_CA_BUNDLE: /tmp/bcn-ca-bundle.pem

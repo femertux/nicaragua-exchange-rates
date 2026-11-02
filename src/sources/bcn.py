@@ -1,7 +1,9 @@
+import os
+import subprocess
+
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from xml.etree import ElementTree
-import subprocess
 
 from src.models.official_rate import OfficialRate
 from src.utils.time_utils import nicaragua_today
@@ -70,6 +72,18 @@ def fetch_bcn_rate(
         "--data-binary",
         "@-",
     ]
+
+    bcn_ca_bundle = os.environ.get(
+        "BCN_CA_BUNDLE"
+    )
+
+    if bcn_ca_bundle:
+        curl_command.extend(
+            [
+                "--cacert",
+                bcn_ca_bundle,
+            ]
+        )
 
     result = subprocess.run(
         curl_command,
