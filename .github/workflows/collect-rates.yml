@@ -1,3 +1,4 @@
+
 name: Collect exchange rates
 
 on:
@@ -9,8 +10,16 @@ jobs:
     timeout-minutes: 10
 
     steps:
+      # --------------------------------------------------------
+      # Repository
+      # --------------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # --------------------------------------------------------
+      # Python
+      # --------------------------------------------------------
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -20,6 +29,21 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      # --------------------------------------------------------
+      # BCN TLS Diagnostics (Temporary)
+      # --------------------------------------------------------
+
+      - name: Diagnose BCN TLS
+        continue-on-error: true
+        run: |
+          curl --version
+          curl -Iv --max-time 20 \
+            https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx
+
+      # --------------------------------------------------------
+      # Collect Exchange Rates
+      # --------------------------------------------------------
 
       - name: Collect exchange rates
         run: python -m src.main

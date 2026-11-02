@@ -1,12 +1,15 @@
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from xml.etree import ElementTree
-import platform
 import subprocess
 
 from src.models.official_rate import OfficialRate
 from src.utils.time_utils import nicaragua_today
 
+
+# ============================================================
+# BCN Configuration
+# ============================================================
 
 BCN_URL = (
     "https://servicios.bcn.gob.ni/"
@@ -19,11 +22,20 @@ SOAP_ACTION = (
 )
 
 
+# ============================================================
+# Fetch Official Exchange Rate
+# ============================================================
+
 def fetch_bcn_rate(
     rate_date: date | None = None,
 ) -> OfficialRate:
+
     if rate_date is None:
         rate_date = nicaragua_today()
+
+    # --------------------------------------------------------
+    # SOAP Request
+    # --------------------------------------------------------
 
     soap_body = f"""<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope
@@ -39,6 +51,10 @@ def fetch_bcn_rate(
     </soap:Body>
 </soap:Envelope>"""
 
+    # --------------------------------------------------------
+    # HTTP Request
+    # --------------------------------------------------------
+
     curl_command = [
         "curl",
         "--silent",
@@ -46,38 +62,33 @@ def fetch_bcn_rate(
         "--fail",
         "--max-time",
         "30",
+        BCN_URL,
+        "-H",
+        "Content-Type: text/xml; charset=utf-8",
+        "-H",
+        f'SOAPAction: "{SOAP_ACTION}"',
+        "--data-binary",
+        "@-",
     ]
-
-    # GitHub Actions uses Linux + OpenSSL 3.
-    # BCN requires legacy TLS 1.0 compatibility there.
-    if platform.system() == "Linux":
-        curl_command.extend(
-            [
-                "--tlsv1.0",
-                "--ciphers",
-                "DEFAULT:@SECLEVEL=0",
-            ]
-        )
-
-    curl_command.extend(
-        [
-            BCN_URL,
-            "-H",
-            "Content-Type: text/xml; charset=utf-8",
-            "-H",
-            f'SOAPAction: "{SOAP_ACTION}"',
-            "--data-binary",
-            "@-",
-        ]
-    )
 
     result = subprocess.run(
         curl_command,
         input=soap_body,
         text=True,
         capture_output=True,
-        check=True,
+        check=False,
     )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            "BCN request failed "
+            f"(curl exit code {result.returncode}): "
+            f"{result.stderr.strip()}"
+        )
+
+    # --------------------------------------------------------
+    # Parse SOAP Response
+    # --------------------------------------------------------
 
     root = ElementTree.fromstring(
         result.stdout
@@ -99,6 +110,10 @@ def fetch_bcn_rate(
         raise ValueError(
             "BCN official exchange rate not found"
         )
+
+    # --------------------------------------------------------
+    # Build Official Rate
+    # --------------------------------------------------------
 
     return OfficialRate(
         source="BCN",
