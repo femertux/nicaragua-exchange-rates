@@ -31,20 +31,40 @@ jobs:
         run: pip install -r requirements.txt
 
       # --------------------------------------------------------
-      # BCN Certificate Chain Diagnostics (Temporary)
+      # BCN Certificate Validation (Temporary)
       # --------------------------------------------------------
 
-      - name: Diagnose BCN certificate chain
+      - name: Diagnose BCN certificate validation
         continue-on-error: true
         run: |
-          echo "=== BCN Certificate Chain ==="
+          echo "=== Download DigiCert intermediate ==="
 
-          openssl s_client \
-            -connect servicios.bcn.gob.ni:443 \
-            -servername servicios.bcn.gob.ni \
-            -showcerts \
-            </dev/null 2>&1 | grep -E \
-            "Certificate chain|^[[:space:]]*[0-9]+ s:|^[[:space:]]*i:|Verify return code|verify error"
+          curl --fail --silent --show-error \
+            --output /tmp/digicert-intermediate.crt \
+            https://cacerts.digicert.com/DigiCertGlobalG2TLSRSASHA2562020CA1-1.crt
+
+          echo "=== Inspect certificate ==="
+
+          openssl x509 \
+            -inform DER \
+            -in /tmp/digicert-intermediate.crt \
+            -noout \
+            -subject \
+            -issuer
+
+          echo "=== Convert certificate to PEM ==="
+
+          openssl x509 \
+            -inform DER \
+            -in /tmp/digicert-intermediate.crt \
+            -out /tmp/digicert-intermediate.pem
+
+          echo "=== Test BCN SSL connection ==="
+
+          curl --verbose --max-time 20 \
+            --cacert /tmp/digicert-intermediate.pem \
+            https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx \
+            --output /dev/null
 
       # --------------------------------------------------------
       # Collect Exchange Rates
