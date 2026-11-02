@@ -31,15 +31,20 @@ jobs:
         run: pip install -r requirements.txt
 
       # --------------------------------------------------------
-      # BCN TLS Diagnostics (Temporary)
+      # BCN Certificate Chain Diagnostics (Temporary)
       # --------------------------------------------------------
 
-      - name: Diagnose BCN TLS
+      - name: Diagnose BCN certificate chain
         continue-on-error: true
         run: |
-          curl --version
-          curl -Iv --max-time 20 \
-            https://servicios.bcn.gob.ni/Tc_Servicio/ServicioTC.asmx
+          echo "=== BCN Certificate Chain ==="
+
+          openssl s_client \
+            -connect servicios.bcn.gob.ni:443 \
+            -servername servicios.bcn.gob.ni \
+            -showcerts \
+            </dev/null 2>&1 | grep -E \
+            "Certificate chain|^[[:space:]]*[0-9]+ s:|^[[:space:]]*i:|Verify return code|verify error"
 
       # --------------------------------------------------------
       # Collect Exchange Rates
